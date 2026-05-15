@@ -2,8 +2,12 @@
 app.py
 ------
 Nassau Candy Distributor — Factory Reallocation & Shipping Optimization
-DEPLOYMENT-READY VERSION
+FINAL FIXED DEPLOYMENT VERSION
 """
+
+# =============================================================================
+# IMPORTS
+# =============================================================================
 
 import os
 import sys
@@ -30,8 +34,7 @@ from clustering import (
     build_route_profiles,
     cluster_routes,
     get_slow_routes,
-    get_product_region_heatmap,
-    cluster_summary
+    get_product_region_heatmap
 )
 
 from simulator import (
@@ -100,13 +103,10 @@ html, body, [class*="css"]  {
 """, unsafe_allow_html=True)
 
 # =============================================================================
-# DATA PATH
+# CSV SOURCE
 # =============================================================================
 
-DATA_PATH = os.path.join(
-    os.path.dirname(__file__),
-    "data.csv"
-)
+CSV_URL = "https://raw.githubusercontent.com/SumanBanerjee21/Nassau_Candy_Project/main/data.csv"
 
 # =============================================================================
 # LOAD DATA
@@ -114,15 +114,24 @@ DATA_PATH = os.path.join(
 
 @st.cache_data(show_spinner="📥 Loading dataset...")
 def get_data():
-    return load_data(DATA_PATH)
+
+    temp_path = "temp_data.csv"
+
+    df = pd.read_csv(CSV_URL)
+
+    df.to_csv(temp_path, index=False)
+
+    return load_data(temp_path)
 
 # =============================================================================
 # LOAD MODEL
 # =============================================================================
 
-@st.cache_resource(show_spinner="🤖 Loading trained ML model...")
+@st.cache_resource(show_spinner="🤖 Loading ML model...")
 def get_model():
+
     model, encoders = load_model_and_encoders()
+
     return model, encoders
 
 # =============================================================================
@@ -131,7 +140,9 @@ def get_model():
 
 @st.cache_data(show_spinner="🔍 Clustering routes...")
 def get_clusters(_df):
+
     rp = build_route_profiles(_df)
+
     return cluster_routes(rp)
 
 # =============================================================================
@@ -140,6 +151,7 @@ def get_clusters(_df):
 
 @st.cache_data(show_spinner="⚙️ Running simulations...")
 def get_all_scenarios(_df, _model, _encoders):
+
     return simulate_all_products(_df, _model, _encoders)
 
 # =============================================================================
@@ -163,7 +175,6 @@ with st.sidebar:
         [
             "📊 EDA Overview",
             "🏭 Factory Optimizer",
-            "🔀 What-If Analysis",
             "🏆 Recommendations",
             "⚠️ Risk & Impact"
         ]
@@ -173,14 +184,12 @@ with st.sidebar:
 # MAIN LOAD
 # =============================================================================
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
 df = get_data()
 
 model, encoders = get_model()
 
 stats = get_summary_stats(df)
+
 # =============================================================================
 # GLOBAL FILTERS
 # =============================================================================
@@ -190,6 +199,7 @@ with st.sidebar:
     st.divider()
 
     regions = ["All"] + stats["regions"]
+
     ship_modes = ["All"] + stats["ship_modes"]
 
     sel_region = st.selectbox(
@@ -236,10 +246,23 @@ if page == "📊 EDA Overview":
     c1, c2, c3, c4, c5 = st.columns(5)
 
     c1.metric("Orders", len(dff))
+
     c2.metric("Products", stats["unique_products"])
-    c3.metric("Avg Lead Time", f"{dff['Lead_Time_Days'].mean():.1f} d")
-    c4.metric("Sales", f"${dff['Sales'].sum():,.0f}")
-    c5.metric("Margin", f"{(dff['Profit_Margin'].mean()*100):.1f}%")
+
+    c3.metric(
+        "Avg Lead Time",
+        f"{dff['Lead_Time_Days'].mean():.1f} d"
+    )
+
+    c4.metric(
+        "Sales",
+        f"${dff['Sales'].sum():,.0f}"
+    )
+
+    c5.metric(
+        "Margin",
+        f"{(dff['Profit_Margin'].mean()*100):.1f}%"
+    )
 
     # =========================================================================
     # LEAD TIME DISTRIBUTION
@@ -260,7 +283,7 @@ if page == "📊 EDA Overview":
     st.plotly_chart(fig, use_container_width=True)
 
     # =========================================================================
-    # SHIP MODE
+    # SHIP MODE ANALYSIS
     # =========================================================================
 
     st.markdown(
@@ -357,38 +380,6 @@ if page == "📊 EDA Overview":
 
     st.plotly_chart(fig5, use_container_width=True)
 
-    # =========================================================================
-    # MODEL INFO
-    # =========================================================================
-
-    st.markdown(
-        '<div class="section-title">Model Information</div>',
-        unsafe_allow_html=True
-    )
-
-    model_info = pd.DataFrame({
-        "Component": [
-            "Model Type",
-            "Deployment",
-            "Status"
-        ],
-        "Value": [
-            type(model).__name__,
-            "Streamlit Cloud",
-            "Loaded Successfully"
-        ]
-    })
-
-    st.dataframe(
-        model_info,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    # =========================================================================
-    # RAW DATA
-    # =========================================================================
-
     with st.expander("🔍 Raw Data Preview"):
 
         st.dataframe(
@@ -410,24 +401,28 @@ elif page == "🏭 Factory Optimizer":
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
+
         product = st.selectbox(
             "Product",
             sorted(df["Product Name"].unique())
         )
 
     with col2:
+
         region_opt = st.selectbox(
             "Region",
             stats["regions"]
         )
 
     with col3:
+
         mode_opt = st.selectbox(
             "Ship Mode",
             stats["ship_modes"]
         )
 
     with col4:
+
         units_opt = st.slider(
             "Units",
             1,
@@ -463,22 +458,7 @@ elif page == "🏭 Factory Optimizer":
         st.plotly_chart(fig, use_container_width=True)
 
 # =============================================================================
-# PAGE 3 — WHAT IF
-# =============================================================================
-
-elif page == "🔀 What-If Analysis":
-
-    st.markdown(
-        '<div class="big-header">🔀 What-If Analysis</div>',
-        unsafe_allow_html=True
-    )
-
-    st.info(
-        "Compare current vs proposed factory assignment."
-    )
-
-# =============================================================================
-# PAGE 4 — RECOMMENDATIONS
+# PAGE 3 — RECOMMENDATIONS
 # =============================================================================
 
 elif page == "🏆 Recommendations":
@@ -534,7 +514,7 @@ elif page == "🏆 Recommendations":
     )
 
 # =============================================================================
-# PAGE 5 — RISK PANEL
+# PAGE 4 — RISK PANEL
 # =============================================================================
 
 elif page == "⚠️ Risk & Impact":
