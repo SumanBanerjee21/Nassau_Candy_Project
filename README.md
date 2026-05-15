@@ -337,7 +337,7 @@ This system elevates Nassau Candy Distributor from **descriptive analytics** to 
 **Suman**
 - Project: Nassau Candy Distributor — Factory Reallocation & Shipping Optimization
 - Course: Data Analytics / Business Intelligence
-- Year: 2024
+- Year: 2026
 
 ---
 
